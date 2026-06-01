@@ -77,7 +77,6 @@ export default function HomeScreen({ navigation }) {
   const sourceData =
     activeTab === 'producten' ? products : activeTab === 'nieuws' ? news : campuses;
 
-  
   const getName = (item) => item.name || item.title || '';
 
   const categories = useMemo(() => {
@@ -115,7 +114,7 @@ export default function HomeScreen({ navigation }) {
     return result;
   }, [sourceData, search, activeCategory, sort]);
 
- const renderItem = ({ item }) => {
+  const renderItem = ({ item }) => {
     if (activeTab === 'producten') {
       return (
         <ProductCard
@@ -162,6 +161,13 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <Pressable
+        style={styles.gameKnop}
+        onPress={() => navigation.navigate('Game')}
+      >
+        <Text style={styles.gameKnopText}>🎒 Speel de mini-game</Text>
+      </Pressable>
+
       <View style={styles.tabRow}>
         {TABS.map((tab) => (
           <Pressable
@@ -307,4 +313,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   retryText: { color: BRAND.white, fontWeight: 'bold' },
+
+  gameKnop: {
+    backgroundColor: BRAND.green,
+    margin: 12,
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  gameKnopText: { color: BRAND.white, fontWeight: 'bold', fontSize: 15 },
 });

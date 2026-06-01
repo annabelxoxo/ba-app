@@ -8,6 +8,8 @@ import NewsDetailsScreen from '../screens/NewsDetailsScreen';
 import CampusDetailsScreen from '../screens/CampusDetailsScreen';
 import { BRAND } from '../constants/colors';
 
+import GameScreen from '../screens/GameScreen';
+
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -24,6 +26,8 @@ export default function AppNavigator() {
         <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} options={{ title: 'Product' }} />
         <Stack.Screen name="NewsDetails" component={NewsDetailsScreen} options={{ title: 'Nieuws' }} />
         <Stack.Screen name="CampusDetails" component={CampusDetailsScreen} options={{ title: 'Campus' }} />
+        <Stack.Screen name="Game" component={GameScreen} options={{ title: 'Mini-game' }} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );
