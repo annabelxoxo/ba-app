@@ -96,7 +96,7 @@ export default function GameScreen() {
   if (!gestart) {
     return (
       <View style={styles.center}>
-        <Text style={styles.titel}>🎒 Vang de schoolspullen!</Text>
+        <Text style={styles.titel}>Vang de schoolspullen!</Text>
         <Text style={styles.uitleg}>
           Vang boeken, pennen en appels met je rugzak.{'\n'}
           Pas op voor bommen 💣 die zijn game over!
