@@ -177,7 +177,7 @@ export default function HomeScreen({ navigation }) {
 
       <View style={styles.hero}>
         <Image
-          source={require('C:\\Users\\smeul\\OneDrive\\Documenten\\GitHub\\ba-app\\assets\\busleyden atheneum logo.png')}
+          source={require('ba-app//assets//logo.png')}
           style={styles.logo}
           resizeMode="contain"
         />
