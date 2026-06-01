@@ -99,7 +99,7 @@ export default function GameScreen() {
         <Text style={styles.titel}>🎒 Vang de schoolspullen!</Text>
         <Text style={styles.uitleg}>
           Vang boeken, pennen en appels met je rugzak.{'\n'}
-          Pas op voor bommen 💣 — die zijn game over!
+          Pas op voor bommen 💣 die zijn game over!
         </Text>
         <Pressable style={styles.knop} onPress={startGame}>
           <Text style={styles.knopText}>Start</Text>

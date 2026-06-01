@@ -2,12 +2,14 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   TextInput,
   FlatList,
   Pressable,
   ScrollView,
   ActivityIndicator,
   StyleSheet,
+  Switch,
 } from 'react-native';
 
 import ProductCard from '../components/ProductCard';
@@ -17,6 +19,9 @@ import { getProducts, getNews, getCampuses } from '../services/api';
 import { BRAND } from '../constants/colors';
 
 const TABS = ['producten', 'nieuws', 'campussen'];
+
+
+const ACCENTS = ['#E63323', '#F7A600', '#DEDC00', '#86BC25', '#00AFCB', '#1961AC', '#A7358B', '#EA5297'];
 
 const SORT_OPTIONS = [
   { key: 'naam-az', label: 'Naam A-Z' },
@@ -34,6 +39,7 @@ export default function HomeScreen({ navigation }) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState(null);
   const [sort, setSort] = useState('naam-az');
+  const [alleenGoedkoop, setAlleenGoedkoop] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -66,12 +72,14 @@ export default function HomeScreen({ navigation }) {
     setSearch('');
     setActiveCategory(null);
     setSort('naam-az');
+    setAlleenGoedkoop(false);
   };
 
   const resetFilters = () => {
     setSearch('');
     setActiveCategory(null);
     setSort('naam-az');
+    setAlleenGoedkoop(false);
   };
 
   const sourceData =
@@ -96,6 +104,10 @@ export default function HomeScreen({ navigation }) {
       result = result.filter((item) => item.category === activeCategory);
     }
 
+    if (alleenGoedkoop && activeTab === 'producten') {
+      result = result.filter((item) => (item.price || 0) < 10);
+    }
+
     result.sort((a, b) => {
       const nameA = getName(a).trim().toLowerCase();
       const nameB = getName(b).trim().toLowerCase();
@@ -112,7 +124,7 @@ export default function HomeScreen({ navigation }) {
     });
 
     return result;
-  }, [sourceData, search, activeCategory, sort]);
+  }, [sourceData, search, activeCategory, sort, alleenGoedkoop]);
 
   const renderItem = ({ item }) => {
     if (activeTab === 'producten') {
@@ -159,21 +171,46 @@ export default function HomeScreen({ navigation }) {
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <Pressable
-        style={styles.gameKnop}
-        onPress={() => navigation.navigate('Game')}
-      >
-        <Text style={styles.gameKnopText}>🎒 Speel de mini-game</Text>
-      </Pressable>
+
+  const Header = (
+    <View>
+
+      <View style={styles.hero}>
+        <Image
+          source={require('C:\\Users\\smeul\\OneDrive\\Documenten\\GitHub\\ba-app\\assets\\busleyden atheneum logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.heroTitel}>Welkom bij Busleyden Atheneum</Text>
+        <Text style={styles.heroSub}>Ontdek onze producten, nieuws en campussen</Text>
+      </View>
+
+
+      <View style={styles.knopRij}>
+        <Pressable
+          style={[styles.bigKnop, { backgroundColor: '#F7A600' }]}
+          onPress={() => navigation.navigate('Game')}
+        >
+          <Text style={styles.bigKnopText}>Mini-game</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.bigKnop, { backgroundColor: '#00AFCB' }]}
+          onPress={() => navigation.navigate('Studiezoeker')}
+        >
+          <Text style={styles.bigKnopText}>Studiezoeker</Text>
+        </Pressable>
+      </View>
+
 
       <View style={styles.tabRow}>
-        {TABS.map((tab) => (
+        {TABS.map((tab, i) => (
           <Pressable
             key={tab}
             onPress={() => switchTab(tab)}
-            style={[styles.tab, activeTab === tab && styles.tabActive]}
+            style={[
+              styles.tab,
+              activeTab === tab && { backgroundColor: ACCENTS[i] },
+            ]}
           >
             <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
               {tab}
@@ -188,6 +225,17 @@ export default function HomeScreen({ navigation }) {
         value={search}
         onChangeText={setSearch}
       />
+
+      {activeTab === 'producten' && (
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Alleen onder € 10</Text>
+          <Switch
+            value={alleenGoedkoop}
+            onValueChange={setAlleenGoedkoop}
+            trackColor={{ true: BRAND.green }}
+          />
+        </View>
+      )}
 
       {categories.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
@@ -235,19 +283,23 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.resetText}>Reset</Text>
         </Pressable>
       </ScrollView>
-
-      <FlatList
-        data={visibleData}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <View style={styles.center}>
-            <Text style={styles.muted}>Geen resultaten gevonden</Text>
-          </View>
-        }
-      />
     </View>
+  );
+
+  return (
+    <FlatList
+      style={styles.container}
+      data={visibleData}
+      keyExtractor={(item) => String(item.id)}
+      renderItem={renderItem}
+      ListHeaderComponent={Header}
+      contentContainerStyle={styles.list}
+      ListEmptyComponent={
+        <View style={styles.emptyBox}>
+          <Text style={styles.muted}>Geen resultaten gevonden</Text>
+        </View>
+      }
+    />
   );
 }
 
@@ -257,24 +309,56 @@ const styles = StyleSheet.create({
   muted: { color: '#666', marginTop: 8 },
   errorText: { color: '#E63323', textAlign: 'center', marginBottom: 12 },
 
-  tabRow: { flexDirection: 'row', padding: 12, gap: 8 },
-  tab: {
-    paddingVertical: 8,
+  hero: {
+    backgroundColor: '#f4f8ee',
+    alignItems: 'center',
+    paddingVertical: 28,
     paddingHorizontal: 16,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  logo: { width: 180, height: 70, marginBottom: 12 },
+  heroTitel: { fontSize: 20, fontWeight: 'bold', color: BRAND.black, textAlign: 'center' },
+  heroSub: { fontSize: 14, color: '#666', marginTop: 4, textAlign: 'center' },
+
+  knopRij: { flexDirection: 'row', gap: 12, padding: 12 },
+  bigKnop: {
+    flex: 1,
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+  },
+  bigKnopEmoji: { fontSize: 28 },
+  bigKnopText: { color: BRAND.white, fontWeight: 'bold', fontSize: 15, marginTop: 4 },
+
+  tabRow: { flexDirection: 'row', paddingHorizontal: 12, gap: 8, marginTop: 4 },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: '#f0f0f0',
+    alignItems: 'center',
   },
-  tabActive: { backgroundColor: BRAND.green },
-  tabText: { color: '#333', textTransform: 'capitalize' },
+  tabText: { color: '#333', textTransform: 'capitalize', fontWeight: '600' },
   tabTextActive: { color: BRAND.white, fontWeight: 'bold' },
 
   search: {
     marginHorizontal: 12,
+    marginTop: 12,
     marginBottom: 8,
     padding: 12,
     borderRadius: 10,
     backgroundColor: '#f4f4f4',
   },
+
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 12,
+    marginBottom: 8,
+  },
+  switchLabel: { fontSize: 14, color: '#333' },
 
   filterRow: { paddingHorizontal: 12, maxHeight: 44 },
   chip: {
@@ -288,7 +372,7 @@ const styles = StyleSheet.create({
   chipText: { color: '#333' },
   chipTextActive: { color: BRAND.white },
 
-  sortRow: { paddingHorizontal: 12, maxHeight: 44, marginTop: 4 },
+  sortRow: { paddingHorizontal: 12, maxHeight: 44, marginTop: 4, marginBottom: 8 },
   sortChip: {
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -304,7 +388,8 @@ const styles = StyleSheet.create({
   resetChip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16 },
   resetText: { color: '#E63323', fontSize: 13 },
 
-  list: { padding: 12, gap: 12 },
+  list: { paddingBottom: 24, gap: 12 },
+  emptyBox: { padding: 40, alignItems: 'center' },
 
   retryBtn: {
     backgroundColor: BRAND.green,
@@ -313,13 +398,4 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   retryText: { color: BRAND.white, fontWeight: 'bold' },
-
-  gameKnop: {
-    backgroundColor: BRAND.green,
-    margin: 12,
-    padding: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  gameKnopText: { color: BRAND.white, fontWeight: 'bold', fontSize: 15 },
 });
