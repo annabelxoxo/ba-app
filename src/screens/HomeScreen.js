@@ -11,8 +11,12 @@ import {
 } from 'react-native';
 
 import ProductCard from '../components/ProductCard';
-import { getProducts } from '../services/api';
+import NewsCard from '../components/NewsCard';
+import CampusCard from '../components/CampusCard';
+import { getProducts, getNews, getCampuses } from '../services/api';
 import { BRAND } from '../constants/colors';
+
+const TABS = ['producten', 'nieuws', 'campussen'];
 
 const SORT_OPTIONS = [
   { key: 'naam-az', label: 'Naam A-Z' },
@@ -23,8 +27,14 @@ const SORT_OPTIONS = [
 
 export default function HomeScreen({ navigation }) {
   const [products, setProducts] = useState([]);
+  const [news, setNews] = useState([]);
+  const [campuses, setCampuses] = useState([]);
+
+  const [activeTab, setActiveTab] = useState('producten');
   const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState(null);
   const [sort, setSort] = useState('naam-az');
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -32,8 +42,14 @@ export default function HomeScreen({ navigation }) {
     try {
       setLoading(true);
       setError(null);
-      const p = await getProducts();
+      const [p, n, c] = await Promise.all([
+        getProducts(),
+        getNews(),
+        getCampuses(),
+      ]);
       setProducts(p);
+      setNews(n);
+      setCampuses(c);
     } catch (e) {
       setError('Er ging iets mis bij het laden. Probeer opnieuw.');
     } finally {
@@ -45,38 +61,84 @@ export default function HomeScreen({ navigation }) {
     loadData();
   }, [loadData]);
 
-  const resetFilters = () => {
+  const switchTab = (tab) => {
+    setActiveTab(tab);
     setSearch('');
+    setActiveCategory(null);
     setSort('naam-az');
   };
 
+  const resetFilters = () => {
+    setSearch('');
+    setActiveCategory(null);
+    setSort('naam-az');
+  };
+
+  const sourceData =
+    activeTab === 'producten' ? products : activeTab === 'nieuws' ? news : campuses;
+
+  
+  const getName = (item) => item.name || item.title || '';
+
+  const categories = useMemo(() => {
+    const all = sourceData.map((item) => item.category).filter(Boolean);
+    return [...new Set(all)];
+  }, [sourceData]);
+
   const visibleData = useMemo(() => {
-    let result = [...products];
+    let result = [...sourceData];
 
     if (search.trim()) {
       const q = search.toLowerCase();
-      result = result.filter((item) =>
-        (item.name || '').toLowerCase().includes(q)
-      );
+      result = result.filter((item) => getName(item).toLowerCase().includes(q));
+    }
+
+    if (activeCategory) {
+      result = result.filter((item) => item.category === activeCategory);
     }
 
     result.sort((a, b) => {
-      const nameA = (a.name || '').trim().toLowerCase();
-      const nameB = (b.name || '').trim().toLowerCase();
+      const nameA = getName(a).trim().toLowerCase();
+      const nameB = getName(b).trim().toLowerCase();
       switch (sort) {
         case 'naam-za':
           return nameB.localeCompare(nameA);
         case 'prijs-laag':
-          return a.price - b.price;
+          return (a.price || 0) - (b.price || 0);
         case 'prijs-hoog':
-          return b.price - a.price;
+          return (b.price || 0) - (a.price || 0);
         default:
           return nameA.localeCompare(nameB);
       }
     });
 
     return result;
-  }, [products, search, sort]);
+  }, [sourceData, search, activeCategory, sort]);
+
+ const renderItem = ({ item }) => {
+    if (activeTab === 'producten') {
+      return (
+        <ProductCard
+          product={item}
+          onPress={() => navigation.navigate('ProductDetails', { product: item })}
+        />
+      );
+    }
+    if (activeTab === 'nieuws') {
+      return (
+        <NewsCard
+          news={item}
+          onPress={() => navigation.navigate('NewsDetails', { news: item })}
+        />
+      );
+    }
+    return (
+      <CampusCard
+        campus={item}
+        onPress={() => navigation.navigate('CampusDetails', { campus: item })}
+      />
+    );
+  };
 
   if (loading) {
     return (
@@ -100,31 +162,69 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <View style={styles.tabRow}>
+        {TABS.map((tab) => (
+          <Pressable
+            key={tab}
+            onPress={() => switchTab(tab)}
+            style={[styles.tab, activeTab === tab && styles.tabActive]}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+              {tab}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
       <TextInput
         style={styles.search}
-        placeholder="Zoek een product..."
+        placeholder={`Zoek in ${activeTab}...`}
         value={search}
         onChangeText={setSearch}
       />
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.sortRow}
-      >
-        {SORT_OPTIONS.map((opt) => (
+      {categories.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
           <Pressable
-            key={opt.key}
-            onPress={() => setSort(opt.key)}
-            style={[styles.sortChip, sort === opt.key && styles.sortChipActive]}
+            onPress={() => setActiveCategory(null)}
+            style={[styles.chip, !activeCategory && styles.chipActive]}
           >
-            <Text
-              style={[styles.sortText, sort === opt.key && styles.sortTextActive]}
-            >
-              {opt.label}
-            </Text>
+            <Text style={[styles.chipText, !activeCategory && styles.chipTextActive]}>Alle</Text>
           </Pressable>
-        ))}
+          {categories.map((cat) => (
+            <Pressable
+              key={cat}
+              onPress={() => setActiveCategory(cat)}
+              style={[styles.chip, activeCategory === cat && styles.chipActive]}
+            >
+              <Text style={[styles.chipText, activeCategory === cat && styles.chipTextActive]}>
+                {cat}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sortRow}>
+        {SORT_OPTIONS.map((opt) => {
+          if (
+            (opt.key === 'prijs-laag' || opt.key === 'prijs-hoog') &&
+            activeTab !== 'producten'
+          ) {
+            return null;
+          }
+          return (
+            <Pressable
+              key={opt.key}
+              onPress={() => setSort(opt.key)}
+              style={[styles.sortChip, sort === opt.key && styles.sortChipActive]}
+            >
+              <Text style={[styles.sortText, sort === opt.key && styles.sortTextActive]}>
+                {opt.label}
+              </Text>
+            </Pressable>
+          );
+        })}
         <Pressable onPress={resetFilters} style={styles.resetChip}>
           <Text style={styles.resetText}>Reset</Text>
         </Pressable>
@@ -133,13 +233,7 @@ export default function HomeScreen({ navigation }) {
       <FlatList
         data={visibleData}
         keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => (
-          <ProductCard
-            product={item}
-            onPress={() => {
-            }}
-          />
-        )}
+        renderItem={renderItem}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.center}>
@@ -157,14 +251,38 @@ const styles = StyleSheet.create({
   muted: { color: '#666', marginTop: 8 },
   errorText: { color: '#E63323', textAlign: 'center', marginBottom: 12 },
 
+  tabRow: { flexDirection: 'row', padding: 12, gap: 8 },
+  tab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+  },
+  tabActive: { backgroundColor: BRAND.green },
+  tabText: { color: '#333', textTransform: 'capitalize' },
+  tabTextActive: { color: BRAND.white, fontWeight: 'bold' },
+
   search: {
-    margin: 12,
+    marginHorizontal: 12,
+    marginBottom: 8,
     padding: 12,
     borderRadius: 10,
     backgroundColor: '#f4f4f4',
   },
 
-  sortRow: { paddingHorizontal: 12, maxHeight: 44 },
+  filterRow: { paddingHorizontal: 12, maxHeight: 44 },
+  chip: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: '#f0f0f0',
+    marginRight: 8,
+  },
+  chipActive: { backgroundColor: BRAND.black },
+  chipText: { color: '#333' },
+  chipTextActive: { color: BRAND.white },
+
+  sortRow: { paddingHorizontal: 12, maxHeight: 44, marginTop: 4 },
   sortChip: {
     paddingVertical: 6,
     paddingHorizontal: 12,

@@ -77,16 +77,24 @@ export async function getCampuses() {
   const items = await fetchCollection(COLLECTIONS.campuses);
   return items.map((item) => {
     const f = item.fieldData ?? {};
+    const slug = f.slug ?? '';
+    const richting = slug
+      .split('-')
+      .join(' ')
+      .replace(/^./, (c) => c.toUpperCase());
     return {
       id: item.id,
       name: f.name ?? '',
-      color: f.kleur ?? null,     
+      color: f.kleur ?? null,
       text: f.tekst ?? '',
-      quote: f.quote ?? '',
+      image: f.img?.url ?? null,
+      richting: richting,
       address: f.adres ?? '',
       tel: f.tel ?? '',
       email: f.email ?? '',
-      category: f.focus ?? '',    
+      openingsuren: f.openingsuren ?? '',
+      category: richting, 
+      slug: slug,
     };
   });
 }
